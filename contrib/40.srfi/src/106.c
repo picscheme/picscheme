@@ -1,14 +1,20 @@
+/* Needed to enabled getaddrinfo but breaks full C89 compatibility
+ * as c89 does not support getaddrinfo
+ */
+#define _POSIX_C_SOURCE 200112L
+#include <features.h>
+
 #include "picrin.h"
 #include "picrin/extra.h"
 
 #include <errno.h>
-#include <netdb.h>
 #include <netinet/in.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <netdb.h>
 
 #ifndef EWOULDBLOCK
 #define EWOULDBLOCK EAGAIN

@@ -1,4 +1,5 @@
 *.o
+*.lo
 src/load_piclib.c
 src/init_contrib.c
 docs/contrib.rst
@@ -10,4 +11,3 @@ _build
 _static
 _template
 .DS_Store
-picrin

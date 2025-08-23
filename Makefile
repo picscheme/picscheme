@@ -26,6 +26,11 @@ LIBPICRIN_SRCS = \
 	lib/ext/read.c\
 	lib/ext/write.c
 LIBPICRIN_OBJS = $(LIBPICRIN_SRCS:.c=.o)
+LIBPICRIN_DOBJS = $(LIBPICRIN_SRCS:.c=.lo)
+
+LIBROUNDTRIP_SRCS = $(wildcard contrib/10.roundtrip/*.c)
+LIBROUNDTRIP_OBJS = $(LIBROUNDTRIP_SRCS:.c=.o)
+LIBROUNDTRIP_DOBJS = $(LIBROUNDTRIP_SRCS:.c=.lo)
 
 PICRIN_SRCS = \
 	src/main.c\
@@ -36,6 +41,7 @@ PICRIN_OBJS = \
 
 CONTRIB_SRCS =
 CONTRIB_OBJS = $(CONTRIB_SRCS:.c=.o)
+CONTRIB_DOBJS = $(CONTRIB_SRCS:.c=.lo)
 CONTRIB_LIBS =
 CONTRIB_DEFS =
 CONTRIB_INITS =
@@ -43,6 +49,11 @@ CONTRIB_TESTS =
 CONTRIB_DOCS = $(wildcard contrib/*/docs/*.rst)
 PICRIN_ISSUE_TESTS = $(wildcard t/issue/*.scm)
 REPL_ISSUE_TESTS = $(wildcard t/issue/*.sh)
+NAME=libpicrin
+SLIBNAME=$(NAME).a
+DLIBNAME=$(NAME).so
+DLIBMAJOR=1
+DLIBMINOR=0
 
 TEST_RUNNER = picrin
 
@@ -57,6 +68,16 @@ all: picrin
 debug: CFLAGS += -O0 -g
 debug: picrin
 
+dlib: $(DLIBNAME).$(DLIBMAJOR).$(DLIBMINOR).0
+slib: $(SLIBNAME)
+libs: dlib slib
+
+c89: CFLAGS += -std=c89 -Dinline=
+c89: picrin
+
+m32: CFLAGS += -m32
+m32: picrin
+
 tiny-picrin: CFLAGS += -O0 -g -DPIC_USE_LIBRARY=0
 tiny-picrin: $(LIBPICRIN_OBJS) src/tiny-main.o
 	$(CC) $(CFLAGS) -o $@ $(LIBPICRIN_OBJS) src/tiny-main.o $(LDFLAGS)
@@ -68,19 +89,26 @@ picrin: $(PICRIN_OBJS) $(CONTRIB_OBJS) $(LIBPICRIN_OBJS)
 	$(CC) $(CFLAGS) -o $@ $(PICRIN_OBJS) $(CONTRIB_OBJS) $(LIBPICRIN_OBJS) $(LDFLAGS)
 
 src/load_piclib.c: $(CONTRIB_LIBS)
-	perl tools/mkloader.pl $(CONTRIB_LIBS) > $@
+	perl tools/mkloader.chars.pl $(CONTRIB_LIBS) > $@
 
 src/init_contrib.c:
 	perl tools/mkinit.pl $(CONTRIB_INITS) > $@
 
-# FIXME: Undefined symbols error for _emyg_atod and _emyg_dtoa
-# libpicrin.so: $(LIBPICRIN_OBJS)
-# 	$(CC) -shared $(CFLAGS) -o $@ $(LIBPICRIN_OBJS) $(LDFLAGS)
+%.lo: %.c
+	$(CC) $(CPPFLAGS) -fPIC $(CFLAGS) $(CONTRIB_DEFS) -o $@ -c $<
+
+$(SLIBNAME): CFLAGS += $(CONTRIB_DEFS)
+$(SLIBNAME): $(LIBPICRIN_OBJS) $(LIBROUNDTRIP_OBJS)
+	$(AR) $(ARFLAGS) $@ $^
+
+$(DLIBNAME).$(DLIBMAJOR).$(DLIBMINOR).0: $(LIBPICRIN_DOBJS) $(LIBROUNDTRIP_DOBJS)
+	$(CC) -shared -Wl,-soname,$(DLIBNAME).$(DLIBMAJOR) $(CFLAGS) -o $@ $(LIBPICRIN_DOBJS) $(LIBROUNDTRIP_DOBJS) $(LDFLAGS)
 
 lib/ext/boot.c: piclib/boot.scm piclib/library.scm
-	perl tools/mkboot.pl > lib/ext/boot.c
+	perl tools/mkboot.chars.pl > lib/ext/boot.c
 
 $(LIBPICRIN_OBJS) $(PICRIN_OBJS) $(CONTRIB_OBJS): lib/include/picrin.h lib/include/picrin/*.h lib/khash.h lib/object.h lib/state.h lib/vm.h
+$(LIBPICRIN_DOBJS) $(LIBROUNDTRIP_DOBJS): lib/include/picrin.h lib/include/picrin/*.h lib/khash.h lib/object.h lib/state.h lib/vm.h
 
 doc: docs/*.rst docs/contrib.rst
 	$(MAKE) -C docs html
@@ -123,10 +151,12 @@ install: all
 
 clean:
 	$(RM) picrin
-	$(RM) src/load_piclib.c src/init_contrib.c lib/ext/boot.c
+	$(RM) src/load_piclib.c src/init_contrib.c
 	$(RM) libpicrin.so libpicrin-tiny.so
 	$(RM) $(LIBPICRIN_OBJS)
+	$(RM) $(LIBPICRIN_DOBJS)
 	$(RM) $(PICRIN_OBJS)
-	$(RM) $(CONTRIB_OBJS)
+	$(RM) $(CONTRIB_OBJS) $(CONTRIB_DOBJS)
+	$(RM) $(SLIBNAME) $(DLIBNAME).$(DLIBMAJOR).$(DLIBMINOR).0
 
-.PHONY: all install clean push test test-r7rs test-contribs test-issue test-picrin-issue test-repl-issue doc $(CONTRIB_TESTS) $(REPL_ISSUE_TESTS)
+.PHONY: all install clean push test test-r7rs test-contribs test-issue test-picrin-issue test-repl-issue doc c89 m32 dlib slib libs $(CONTRIB_TESTS) $(REPL_ISSUE_TESTS)

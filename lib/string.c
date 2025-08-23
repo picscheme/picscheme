@@ -423,6 +423,7 @@ pic_str_string_copy(pic_state *pic)
   switch (n) {
   case 1:
     start = 0;
+    /* fall through */
   case 2:
     end = len;
   }
@@ -446,6 +447,7 @@ pic_str_string_copy_ip(pic_state *pic)
   switch (n) {
   case 3:
     start = 0;
+    /* fall through */
   case 4:
     end = fromlen;
   }
@@ -475,6 +477,7 @@ pic_str_string_fill_ip(pic_state *pic)
   switch (n) {
   case 2:
     start = 0;
+    /* fall through */
   case 3:
     end = len;
   }
@@ -612,6 +615,7 @@ pic_str_string_to_list(pic_state *pic)
   switch (n) {
   case 1:
     start = 0;
+    /* fall through */
   case 2:
     end = len;
   }

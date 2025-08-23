@@ -138,6 +138,7 @@ pic_blob_bytevector_copy_i(pic_state *pic)
   switch (n) {
   case 3:
     start = 0;
+    /* fall through */
   case 4:
     end = fromlen;
   }
@@ -160,6 +161,7 @@ pic_blob_bytevector_copy(pic_state *pic)
   switch (n) {
   case 1:
     start = 0;
+    /* fall through */
   case 2:
     end = len;
   }
@@ -234,6 +236,7 @@ pic_blob_bytevector_to_list(pic_state *pic)
   switch (n) {
   case 1:
     start = 0;
+    /* fall through */
   case 2:
     end = len;
   }

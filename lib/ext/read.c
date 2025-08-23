@@ -557,9 +557,8 @@ read_label_set(pic_state *pic, pic_value port, int i, struct reader_control *p)
 
         return val;
       }
-
-      /* fall through */
     }
+    /* fall through */
   default:
     {
       kh_val(h, it) = val = read_value(pic, port, c, p);

@@ -191,7 +191,7 @@ static pic_value
 pic_dict_dictionary_for_each(pic_state *pic)
 {
   pic_value dict, proc, key;
-  int it;
+  int it = 0;
 
   pic_get_args(pic, "ld", &proc, &dict);
 

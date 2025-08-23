@@ -253,7 +253,7 @@ strcaseeq(const char *s1, const char *s2)
 {
   char a, b;
 
-  while ((a = *s1++) * (b = *s2++)) {
+  for ((a = *s1++), (b = *s2++); a != '\0' && b != '\0'; (a = *s1++), (b = *s2++)) {
     if (tolower(a) != tolower(b))
       return false;
   }
