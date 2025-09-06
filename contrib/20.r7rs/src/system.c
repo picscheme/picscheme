@@ -7,6 +7,11 @@
 #include "picrin.h"
 #include "picrin/extra.h"
 
+#ifndef __STDC_VERSION__
+/* Not exactly the same but this is all c89 has */
+#define _Exit(status) _exit(status)
+#endif /* __STDC_VERSION__ */
+
 extern int picrin_argc;
 extern char **picrin_argv;
 extern char **picrin_envp;

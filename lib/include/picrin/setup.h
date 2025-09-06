@@ -492,6 +492,13 @@ double PIC_CSTRING_TO_DOUBLE(const char *);
 
 #if PIC_USE_LIBC && (defined (__unix__) || (defined (__APPLE__) && defined (__MACH__)))
 # include <unistd.h>
+#ifndef __STDC_VERSION__
+/* Defining here as in c89 mode it's not defined but is available in the libs. Defining
+ * directly to avoid including various other libraries and macros
+ */
+/* Allocate memory of SIZE bytes with an alignment of ALIGNMENT */
+extern int posix_memalign (void **__memptr, size_t __alignment, size_t __size);
+#endif
 # define PIC_MEMALIGN(pic, buf, alignment, size) posix_memalign(buf, alignment, size)
 # define PIC_BITMAP_GC 1
 #endif

@@ -246,7 +246,7 @@ mark_at(struct heap_page *page, size_t index, size_t size)
       mark_size = size;
     else
       mark_size = UNIT_SIZE - (index % UNIT_SIZE);
-    page->bitmap[index / UNIT_SIZE] |= ~(-1 << mark_size) << (index % UNIT_SIZE);
+    page->bitmap[index / UNIT_SIZE] |= ~(((size_t) ~0) << mark_size) << (index % UNIT_SIZE);
     size  -= mark_size;
     index += mark_size;
   }
@@ -263,7 +263,7 @@ is_marked_at(uint32_t *bitmap, size_t index, size_t size)
     else
       test_size = UNIT_SIZE - (index % UNIT_SIZE);
 
-    if ((bitmap[index / UNIT_SIZE] >> (index % UNIT_SIZE)) & ~((~0) << test_size))
+    if ((bitmap[index / UNIT_SIZE] >> (index % UNIT_SIZE)) & ~(((size_t) ~0) << test_size))
       return 1;
     size  -= test_size;
     index += test_size;

@@ -3,6 +3,33 @@
 
 #include <math.h>
 
+#ifndef __STDC_VERSION__
+static double c89trunc(double x) {
+  return (double)((int)x);
+}
+
+static double c89round(double x) {
+  if (x >= 0.0) {
+      return (double)(((x - (int)x) < 0.5) ? (int)x : (int)x + 1);
+  } else {
+      return (double)(((x - (int)x) > -0.5) ? (int)x : (int)x - 1);
+  }
+}
+
+static int c89isinf(double x) {
+  if (x == HUGE_VAL) return 1;
+  if (x == -HUGE_VAL) return -1;
+  return 0;
+}
+
+#define c89isnan(x) ((x) != (x))
+#else
+#define c89trunc(x) trunc(x)
+#define c89round(x) round(x)
+#define c89isinf(x) isinf(x)
+#define c89isnan(x) isnan(x)
+#endif /* __STDC_VERSION__ */
+
 static pic_value
 pic_number_floor2(pic_state *pic)
 {
@@ -41,7 +68,7 @@ pic_number_trunc2(pic_state *pic)
   } else {
     double q, r;
 
-    q = trunc((double)i/j);
+    q = c89trunc((double)i/j);
     r = i - j * q;
 
     return pic_values(pic, 2, pic_float_value(pic, q), pic_float_value(pic, r));
@@ -89,7 +116,7 @@ pic_number_trunc(pic_state *pic)
   if (e) {
     return pic_int_value(pic, (int)f);
   } else {
-    return pic_float_value(pic, trunc(f));
+    return pic_float_value(pic, c89trunc(f));
   }
 }
 
@@ -104,7 +131,7 @@ pic_number_round(pic_state *pic)
   if (e) {
     return pic_int_value(pic, (int)f);
   } else {
-    return pic_float_value(pic, round(f));
+    return pic_float_value(pic, c89round(f));
   }
 }
 
@@ -117,7 +144,7 @@ pic_number_finite_p(pic_state *pic)
 
   if (pic_int_p(pic, v))
     return pic_true_value(pic);
-  if (pic_float_p(pic, v) && ! (isinf(pic_float(pic, v)) || isnan(pic_float(pic, v))))
+  if (pic_float_p(pic, v) && ! (c89isinf(pic_float(pic, v)) || c89isnan(pic_float(pic, v))))
     return pic_true_value(pic);
   else
     return pic_false_value(pic);
@@ -130,7 +157,7 @@ pic_number_infinite_p(pic_state *pic)
 
   pic_get_args(pic, "o", &v);
 
-  if (pic_float_p(pic, v) && isinf(pic_float(pic, v)))
+  if (pic_float_p(pic, v) && c89isinf(pic_float(pic, v)))
     return pic_true_value(pic);
   else
     return pic_false_value(pic);
@@ -143,7 +170,7 @@ pic_number_nan_p(pic_state *pic)
 
   pic_get_args(pic, "o", &v);
 
-  if (pic_float_p(pic, v) && isnan(pic_float(pic, v)))
+  if (pic_float_p(pic, v) && c89isnan(pic_float(pic, v)))
     return pic_true_value(pic);
   else
     return pic_false_value(pic);

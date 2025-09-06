@@ -921,6 +921,7 @@
           read-bytevector
           read-bytevector!
 
+          write
           newline
           write-char
           write-string

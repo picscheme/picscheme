@@ -7,6 +7,13 @@
 
 #if !PIC_NAN_BOXING
 
+#ifndef __STDC_VERSION__
+#define c89isnan(x) ((x) != (x))
+#else
+#include <math.h>
+#define c89isnan(x) isnan(x)
+#endif
+
 bool
 pic_eq_p(pic_state *PIC_UNUSED(pic), pic_value x, pic_value y)
 {
@@ -26,6 +33,8 @@ pic_eq_p(pic_state *PIC_UNUSED(pic), pic_value x, pic_value y)
 bool
 pic_eqv_p(pic_state *PIC_UNUSED(pic), pic_value x, pic_value y)
 {
+  float x_v, y_v;
+
   if (pic_type(pic, x) != pic_type(pic, y))
     return false;
 
@@ -35,7 +44,11 @@ pic_eqv_p(pic_state *PIC_UNUSED(pic), pic_value x, pic_value y)
   case PIC_TYPE_TRUE: case PIC_TYPE_FALSE:
     return pic_type(pic, x) == pic_type(pic, y);
   case PIC_TYPE_FLOAT:
-    return pic_float(pic, x) == pic_float(pic, y);
+    x_v = pic_float(pic, x);
+    y_v = pic_float(pic, y);
+    if (c89isnan(x_v) && c89isnan(y_v))
+      return 1;
+    return x_v == y_v;
   case PIC_TYPE_INT:
     return pic_int(pic, x) == pic_int(pic, y);
   default:

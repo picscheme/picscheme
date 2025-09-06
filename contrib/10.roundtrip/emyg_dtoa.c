@@ -44,6 +44,21 @@
 
 #define UINT64_C2(h, l) (((uint64_t )(h) << 32) | (uint64_t )(l))
 
+#ifndef __STDC_VERSION__
+static int c89isinf(double x) {
+  if (x == HUGE_VAL) return 1;
+  if (x == -HUGE_VAL) return -1;
+  return 0;
+}
+
+#define c89isnan(x) ((x) != (x))
+#define c89signbit(x) ((x) < 0)
+#else
+#define c89isinf(x) isinf(x)
+#define c89isnan(x) isnan(x)
+#define c89signbit(x) signbit(x)
+#endif /* __STDC_VERSION__ */
+
 typedef struct DiyFp_s {
   uint64_t f;
   int e;
@@ -94,14 +109,14 @@ static inline DiyFp DiyFp_multiply (const DiyFp lhs, const DiyFp rhs) {
 #if defined(_MSC_VER) && defined(_M_AMD64)
   uint64_t h;
   uint64_t l = _umul128(lhs.f, rhs.f, &h);
-  if (l & (uint64_t(1) << 63)) // rounding
+  if (l & (uint64_t(1) << 63)) /* rounding */
     h++;
   return DiyFp_fro_parts(h, lhs.e + rhs.e + 64);
 #elif (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)) && defined(__x86_64__)
   unsigned __int128 p = (unsigned __int128 )(lhs.f) * (unsigned __int128 )(rhs.f);
   uint64_t h = p >> 64;
   uint64_t l = (uint64_t )(p);
-  if (l & (((uint64_t )1) << 63)) // rounding
+  if (l & (((uint64_t )1) << 63)) /* rounding */
     h++;
   return DiyFp_from_parts(h, lhs.e + rhs.e + 64);
 #else
@@ -115,7 +130,7 @@ static inline DiyFp DiyFp_multiply (const DiyFp lhs, const DiyFp rhs) {
   const uint64_t ad = a * d;
   const uint64_t bd = b * d;
   uint64_t tmp = (bd >> 32) + (ad & M32) + (bc & M32);
-  tmp += 1U << 31;  /// mult_round
+  tmp += 1U << 31;  /* mult_round */
   return DiyFp_from_parts(ac + (ad >> 32) + (bc >> 32) + (tmp >> 32), lhs.e + rhs.e + 64);
 #endif
 }
@@ -169,7 +184,7 @@ static inline void NormalizedBoundaries (DiyFp lhs, DiyFp* minus, DiyFp* plus) {
 }
 
 static inline DiyFp GetCachedPower (int e, int* K) {
-  // 10^-348, 10^-340, ..., 10^340
+  /*  10^-348, 10^-340, ..., 10^340 */
   static const uint64_t kCachedPowers_F[] = {
     UINT64_C2(0xfa8fd5a0, 0x081c0288), UINT64_C2(0xbaaee17f, 0xa23ebf76),
     UINT64_C2(0x8b16fb20, 0x3055ac76), UINT64_C2(0xcf42894a, 0x5dce35ea),
@@ -228,14 +243,14 @@ static inline DiyFp GetCachedPower (int e, int* K) {
       907,   933,   960,   986,  1013,  1039,  1066
   };
 
-  //int k = (int )(ceil((-61 - e) * 0.30102999566398114)) + 374;
-  double dk = (-61 - e) * 0.30102999566398114 + 347;  // dk must be positive, so can do ceiling in positive
+  /* int k = (int )(ceil((-61 - e) * 0.30102999566398114)) + 374; */
+  double dk = (-61 - e) * 0.30102999566398114 + 347;  /* dk must be positive, so can do ceiling in positive */
   int k = (int )(dk);
   if (k != dk)
     k++;
 
   unsigned index = (unsigned )((k >> 3) + 1);
-  *K = -(-348 + (int )(index << 3));  // decimal exponent no need lookup table
+  *K = -(-348 + (int )(index << 3));  /* decimal exponent no need lookup table */
 
   assert(index < sizeof(kCachedPowers_F) / sizeof(kCachedPowers_F[0]));
   return DiyFp_from_parts(kCachedPowers_F[index], kCachedPowers_E[index]);
@@ -243,7 +258,7 @@ static inline DiyFp GetCachedPower (int e, int* K) {
 
 static inline void GrisuRound(char* buffer, int len, uint64_t delta, uint64_t rest, uint64_t ten_kappa, uint64_t wp_w) {
   while (rest < wp_w && delta - rest >= ten_kappa &&
-       (rest + ten_kappa < wp_w ||  /// closer
+       (rest + ten_kappa < wp_w ||  /* closer */
       wp_w - rest > rest + ten_kappa - wp_w)) {
     buffer[len - 1]--;
     rest += ten_kappa;
@@ -251,7 +266,7 @@ static inline void GrisuRound(char* buffer, int len, uint64_t delta, uint64_t re
 }
 
 static inline unsigned CountDecimalDigit32(uint32_t n) {
-  // Simple pure C++ implementation was faster than __builtin_clz version in this situation.
+  /* Simple pure C++ implementation was faster than __builtin_clz version in this situation. */
   if (n < 10) return 1;
   if (n < 100) return 2;
   if (n < 1000) return 3;
@@ -306,7 +321,7 @@ static inline void DigitGen(const DiyFp W, const DiyFp Mp, uint64_t delta, char*
     }
   }
 
-  // kappa = 0
+  /* kappa = 0 */
   for (;;) {
     p2 *= 10;
     delta *= 10;
@@ -378,10 +393,10 @@ static inline void WriteExponent(int K, char* buffer) {
 }
 
 static inline void Prettify(char* buffer, int length, int k) {
-  const int kk = length + k;  // 10^(kk-1) <= v < 10^kk
+  const int kk = length + k;  /* 10^(kk-1) <= v < 10^kk */
 
   if (length <= kk && kk <= 21) {
-    // 1234e7 -> 12340000000
+    /* 1234e7 -> 12340000000 */
     int i;
     for (i = length; i < kk; i++)
       buffer[i] = '0';
@@ -390,13 +405,13 @@ static inline void Prettify(char* buffer, int length, int k) {
     buffer[kk + 2] = '\0';
   }
   else if (0 < kk && kk <= 21) {
-    // 1234e-2 -> 12.34
+    /* 1234e-2 -> 12.34 */
     memmove(&buffer[kk + 1], &buffer[kk], length - kk);
     buffer[kk] = '.';
     buffer[length + 1] = '\0';
   }
   else if (-6 < kk && kk <= 0) {
-    // 1234e-6 -> 0.001234
+    /* 1234e-6 -> 0.001234 */
     int i;
     const int offset = 2 - kk;
     memmove(&buffer[offset], &buffer[0], length);
@@ -407,12 +422,12 @@ static inline void Prettify(char* buffer, int length, int k) {
     buffer[length + offset] = '\0';
   }
   else if (length == 1) {
-    // 1e30
+    /* 1e30 */
     buffer[1] = 'e';
     WriteExponent(kk - 1, &buffer[2]);
   }
   else {
-    // 1234e30 -> 1.234e33
+    /* 1234e30 -> 1.234e33 */
     memmove(&buffer[2], &buffer[1], length - 1);
     buffer[1] = '.';
     buffer[length + 1] = 'e';
@@ -422,12 +437,12 @@ static inline void Prettify(char* buffer, int length, int k) {
 
 void emyg_dtoa (double value, char* buffer) {
 
-  if (isinf(value))
-    strcpy(buffer, signbit(value) ? "-inf.0" : "+inf.0");
-  else if (isnan(value))
-    strcpy(buffer, signbit(value) ? "-nan.0" : "+nan.0");
+  if (c89isinf(value))
+    strcpy(buffer, c89signbit(value) ? "-inf.0" : "+inf.0");
+  else if (c89isnan(value))
+    strcpy(buffer, c89signbit(value) ? "-nan.0" : "+nan.0");
   else if (value == 0)
-    strcpy(buffer, signbit(value) ? "-0.0" : "0.0");
+    strcpy(buffer, c89signbit(value) ? "-0.0" : "0.0");
   else {
     if (value < 0) {
       *buffer++ = '-';

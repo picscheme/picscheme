@@ -41,10 +41,10 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <stdint.h>
-#include <ctype.h>  // used by emyg_strtod
-#include <math.h>   // scalbn()
+#include <ctype.h>  /* used by emyg_strtod */
+#include <math.h>   /* scalbn() */
 
-#include "emyg_pow5.h"  // in separate file to support alternate implementations, and it's big
+#include "emyg_pow5.h"  /*  in separate file to support alternate implementations, and it's big */
 
 #ifdef TESTING_QUOREM
 #include <stdio.h>
@@ -59,6 +59,14 @@
 #define BIGNUM_JUMBO_SIZE_UINT32   (30) /* 960 bits > (64 + 54 + (log (expt 5 345) 2) = 919) */
 #define BIGNUM_NORMAL_SIZE_UINT32  (28) /* when we don't need the extra space for multiply */
 #define BIGNUM_QUOTIENT_SIZE_UINT32 (4) /* difference twixt dividend - divisor; see m - n + 1 */
+
+#ifndef __STDC_VERSION__
+static double c89scalbn(double x, int exp) {
+    return x * pow(2, exp);
+}
+#else
+#define c89scalbn(x, exp) scalbn(x, exp)
+#endif
 
 static const int doubleMantissaBits = 53;
 
@@ -143,23 +151,23 @@ static inline int nlz64 (uint64_t x)
 
 int quornd (uint32_t q[], const uint32_t u[], const uint32_t v[], int m, int n)
 {
-    const uint64_t b = 4294967296ULL; // Number base (2**32).
-    uint32_t un[BIGNUM_JUMBO_SIZE_UINT32]; // Normalized form of u, v.
+    const uint64_t b = 4294967296ULL; /*  Number base (2**32). */
+    uint32_t un[BIGNUM_JUMBO_SIZE_UINT32]; /*  Normalized form of u, v. */
     uint32_t vn[BIGNUM_JUMBO_SIZE_UINT32];
-    uint64_t qhat;                    // Estimated quotient digit.
-    uint64_t rhat;                    // A remainder.
-    uint64_t p;                       // Product of two digits.
+    uint64_t qhat;                    /*  Estimated quotient digit. */
+    uint64_t rhat;                    /*  A remainder. */
+    uint64_t p;                       /*  Product of two digits. */
     uint64_t t, k;
     int s, i, j;
     int res = 0;
 
     if (m < n || n <= 0 || v[n-1] == 0)
-        return 1;                         // Return if invalid param.
+        return 1;                         /*  Return if invalid param. */
 
     if (n == 1)
     {
-        k = 0;                            // Take care of the case of a
-        for (j = m - 1; j >= 0; j--)      // single-digit divisor here.
+        k = 0;                            /*  Take care of the case of a */
+        for (j = m - 1; j >= 0; j--)      /*  single-digit divisor here. */
         {
             q[j] = (k*b + u[j]) / v[0];
             k = (k*b + u[j]) - (q[j] * v[0]);
@@ -167,27 +175,27 @@ int quornd (uint32_t q[], const uint32_t u[], const uint32_t v[], int m, int n)
 #ifdef OPTIMIZE_FOR_ATOD
         if ((64 - nlz32(q[1])) > doubleMantissaBits)
         {
-           // we need to divide quotient by 2 to make it fit
-           res = -1; // let caller know we made this adjustment
+           /*  we need to divide quotient by 2 to make it fit */
+           res = -1; /*  let caller know we made this adjustment */
            uint32_t saved_q0 = q[0];
            q[0] = (q[0] >> 1) | (q[1] << 31);
            q[1] =  q[1] >> 1;
 
            if (0 == (saved_q0 & 1))
-               return res; // no need to round
-           // now the remainder is >= 0.5
-           // if un is 0, then the remainder is 0.5
-           // otherwise it is > 0.5
+               return res; /*  no need to round */
+           /*  now the remainder is >= 0.5 */
+           /*  if un is 0, then the remainder is 0.5 */
+           /*  otherwise it is > 0.5 */
            if ((k & UINT32_MAX) != 0)
-                goto round_up; // (2 * remainder) > divisor, round
-           // continue with check for round_even
+                goto round_up; /*  (2 * remainder) > divisor, round */
+           /*  continue with check for round_even */
            if ((q[0] & 1) == 1)
-                goto round_up; // round to even
+                goto round_up; /*  round to even */
            return res;
         }
 #endif
-        // rounding
-        k = (k & UINT32_MAX) * 2; // k is now 2 * remainder
+        /*  rounding */
+        k = (k & UINT32_MAX) * 2; /*  k is now 2 * remainder */
         if ((k > v[0]) || ((k == v[0]) && ((q[0] & 1) == 1)))
         {
 round_up:
@@ -205,7 +213,7 @@ round_up:
    bit is on, and shift u left the same amount. We may have to append a
    high-order digit on the dividend; we do that unconditionally. */
 
-    s = nlz32(v[n-1]);             // 0 <= s <= 31.
+    s = nlz32(v[n-1]);             /*  0 <= s <= 31. */
 
     if (n > BIGNUM_JUMBO_SIZE_UINT32) return 1;
     for (i = n - 1; i > 0; i--)
@@ -218,9 +226,9 @@ round_up:
        un[i] = (u[i] << s) | ((uint64_t)u[i-1] >> (32-s));
     un[0] = u[0] << s;
 
-    for (j = m - n; j >= 0; j--)         // Main loop.
+    for (j = m - n; j >= 0; j--)         /*  Main loop. */
     {
-        // Compute estimate qhat of q[j].
+        /*  Compute estimate qhat of q[j]. */
         qhat = (un[j+n]*b + un[j+n-1]) / vn[n-1];
         rhat = (un[j+n]*b + un[j+n-1]) - qhat*vn[n-1];
 again:
@@ -231,7 +239,7 @@ again:
             if (rhat < b) goto again;
         }
 
-        // Multiply and subtract.
+        /*  Multiply and subtract. */
         k = 0;
         for (i = 0; i < n; i++)
         {
@@ -244,10 +252,10 @@ again:
         }
         un[j+n] -= k;
 
-        q[j] = qhat;              // Store quotient digit.
-        if (un[j+n])              // If we subtracted too
+        q[j] = qhat;              /*  Store quotient digit. */
+        if (un[j+n])              /*  If we subtracted too */
         {
-            q[j] = q[j] - 1;       // much, add back.
+            q[j] = q[j] - 1;       /*  much, add back. */
             k = 0;
             for (i = 0; i < n; i++)
             {
@@ -257,34 +265,34 @@ again:
             }
             un[j+n] = un[j+n] + k;
         }
-    } // End j.
+    } /*  End j. */
 
 #ifdef OPTIMIZE_FOR_ATOD
     if ((64 - nlz32(q[1])) > doubleMantissaBits)
     {
-        // we need to divide quotient by 2 to make it fit
-        res = -1; // let caller know we made this adjustment
+        /*  we need to divide quotient by 2 to make it fit */
+        res = -1; /*  let caller know we made this adjustment */
         uint32_t saved_q0 = q[0];
         q[0] = (q[0] >> 1) | (q[1] << 31);
         q[1] =  q[1] >> 1;
 
         if (0 == (saved_q0 & 1))
-            return -1; // no need to round
-        // now the remainder is >= 0.5
-        // if un is 0, then the remainder is 0.5
-        // otherwise it is > 0.5
+            return -1; /*  no need to round */
+        /*  now the remainder is >= 0.5 */
+        /*  if un is 0, then the remainder is 0.5 */
+        /*  otherwise it is > 0.5 */
         for (i = n-1; i >= 0; i--)
         {
             if (un[i] != 0)
-                goto round_up; // (2 * remainder) > divisor, round
+                goto round_up; /*  (2 * remainder) > divisor, round */
         }
-        // continue with check for round_even
+        /*  continue with check for round_even */
     }
     else
 #endif
     {
-        // Rounding: multiply the remainder by 2 and compare with the divisor
-        //
+        /*  Rounding: multiply the remainder by 2 and compare with the divisor */
+        /*  */
         if (un[n-1] > (UINT32_MAX / 2u))
             goto round_up;
 
@@ -292,18 +300,18 @@ again:
         {
             uint32_t ud = (un[i] << 1) | (un[i-1] >> 31);
             if (ud > vn[i])
-                goto round_up; // (2 * remainder) > divisor, round
+                goto round_up; /*  (2 * remainder) > divisor, round */
             if (ud < vn[i])
-                return 0;      // (2 * remainder) < divisor, done
+                return 0;      /*  (2 * remainder) < divisor, done */
         }
         if ((un[0] << 1) > vn[0])
-            goto round_up; // (2 * remainder) > divisor, round
+            goto round_up; /*  (2 * remainder) > divisor, round */
         if ((un[0] << 1) < vn[0])
-            return 0;      // (2 * remainder) < divisor, done
+            return 0;      /*  (2 * remainder) < divisor, done */
    }
-   // Check for round to even
-   // (2 * remainder) == divisor
-   if ((q[0] & 1) == 1) goto round_up; // round to even
+   /*  Check for round to even */
+   /*  (2 * remainder) == divisor */
+   if ((q[0] & 1) == 1) goto round_up; /*  round to even */
    return res;
 }
 
@@ -327,25 +335,25 @@ static inline void one_shiftLeft (uint32_t v[], int s)
 
 static inline void scl_shift_left_by (uint32_t v[], const uint32_t x[], int sz, int s)
 {
-    // v and x may be identical
-    int w = s / 32; // words to shift
-    int b = s % 32; // bits to shift
+    /*  v and x may be identical */
+    int w = s / 32; /*  words to shift */
+    int b = s % 32; /*  bits to shift */
     int i;
 
     QUODBG(printf("scl_shift_left_by sz %d shift %d (%d %d)\n", sz, s, w, b));
 
-    // sz is the size of the result, v
-    // x is guaranteed to be appropriately sized to provide enough data
-    // this is a dumb api but works for now
+    /*  sz is the size of the result, v */
+    /*  x is guaranteed to be appropriately sized to provide enough data */
+    /*  this is a dumb api but works for now */
 
-    // first copy words
+    /*  first copy words */
     v[sz - 1] = 0u;
     for (i = sz - 2; i >= 0; i--)
     {
         v[i] = ((i - w) >= 0) ? x[i - w] : 0u;
     }
 
-    // then shift bits
+    /*  then shift bits */
     for (i = sz - 1; i > 0; i--)
     {
         v[i] = (v[i] << b) | (v[i - 1] >> (32 - b));
@@ -363,10 +371,10 @@ static inline void u64_shiftLeft (uint32_t v[], uint64_t n, int sz, int s)
         while (s >= 32) { v[x++] = 0; s -= 32; }
         ns = n << s;
         v[x++] = (ns & UINT32_MAX);
-        if (x < sz) // -- don't write past end of v[], caller determined size needed
+        if (x < sz) /*  -- don't write past end of v[], caller determined size needed */
         {
             v[x++] = (ns >> 32);
-            if (x < sz && s != 0) // no more data if s == 0
+            if (x < sz && s != 0) /*  no more data if s == 0 */
                 v[x] = n >> (64 - s);
         }
     }
@@ -374,7 +382,7 @@ static inline void u64_shiftLeft (uint32_t v[], uint64_t n, int sz, int s)
 
 static inline double doubleValue (uint32_t v[])
 {
-    // only the fist 64-bits of v[] are used; caller has determined that's all that's needed
+    /*  only the fist 64-bits of v[] are used; caller has determined that's all that's needed */
     return (double )((uint64_t )v[0] + ((uint64_t )v[1] << 32));
 }
 
@@ -388,10 +396,10 @@ static inline int bitLength (const uint32_t v[], int sz_in_32bit_words)
 
 static inline void mulbyu64 (uint32_t p[], const uint64_t u64mant, const uint32_t m[], int z)
 {
-    // p is z+2 32-bit words
-    // m is z   32-bit words
+    /*  p is z+2 32-bit words */
+    /*  m is z   32-bit words */
 
-    // TODO: could this be optimized to use 128 bit math on platforms that support it?
+    /*  TODO: could this be optimized to use 128 bit math on platforms that support it? */
 
     uint64_t lo = u64mant & UINT32_MAX;
     uint64_t hi = u64mant >> 32;
@@ -405,11 +413,11 @@ static inline void mulbyu64 (uint32_t p[], const uint64_t u64mant, const uint32_
         a = a >> 32;
     }
     p[z] = a;
-    //p[z+1] = 0;
+    /* p[z+1] = 0; */
     a = 0;
     if (hi > 0) for (i = 0; i < z; i++)
     {
-        a += (hi * m[i]) + p[i+1]; // this always (just) fits in 64 bits
+        a += (hi * m[i]) + p[i+1]; /*  this always (just) fits in 64 bits */
         p[i+1] = (a & UINT32_MAX);
         a = a >> 32;
     }
@@ -434,27 +442,27 @@ static inline void mulbyu64 (uint32_t p[], const uint64_t u64mant, const uint32_
 double atod_guts (uint64_t u64mant, int dpoint)
 {
     const uint32_t *pow5p;
-    uint32_t num[BIGNUM_JUMBO_SIZE_UINT32]; // up to (log (expt 5 325) 2) = 755 bits => ~104 bytes
+    uint32_t num[BIGNUM_JUMBO_SIZE_UINT32]; /*  up to (log (expt 5 325) 2) = 755 bits => ~104 bytes */
     uint32_t scl[BIGNUM_NORMAL_SIZE_UINT32];
     uint32_t quo[BIGNUM_QUOTIENT_SIZE_UINT32];
-    int n, m; // as per quornd: n is size of divisor, m is size of dividend in 32-bit words
-    int z;    // z is size of pow5p in 32-bit words
-    int bex;  // binary exponentish
+    int n, m; /*  as per quornd: n is size of divisor, m is size of dividend in 32-bit words */
+    int z;    /*  z is size of pow5p in 32-bit words */
+    int bex;  /*  binary exponentish */
 
     QUODBG(fprintf(stderr, "mant: %llu dp: %d\n", u64mant, dpoint));
 
     if (dpoint >= 0)
     {
         int r = get_pow5(dpoint, &pow5p, &z);
-        if (r) return 0.0/0.0; // NaN for bad input -- TODO: use inf for excessive +exponents?
-        m = z + 2; // size is sum of lengths of multiplicands
+        if (r) return 0.0/0.0; /*  NaN for bad input -- TODO: use inf for excessive +exponents? */
+        m = z + 2; /*  size is sum of lengths of multiplicands */
         if (m > BIGNUM_JUMBO_SIZE_UINT32) { n = 0; goto atod_fail; }
-        mulbyu64(num, u64mant, pow5p, z); // num = pow5 * u64mant
+        mulbyu64(num, u64mant, pow5p, z); /*  num = pow5 * u64mant */
         bex = bitLength(num, m) - doubleMantissaBits;
-        if (bex <= 0) return scalbn(doubleValue(num), dpoint);
+        if (bex <= 0) return c89scalbn(doubleValue(num), dpoint);
         QUODBG(fprintf(stderr, "+ bex: %d z: %d m: %d\n", bex, z, m));
-        n = (bex / 32) + 1; // 32-bit words needed to hold 1 << bex
-        m = (bex + doubleMantissaBits + 31) / 32; // we may be able to shrink by a word
+        n = (bex / 32) + 1; /*  32-bit words needed to hold 1 << bex */
+        m = (bex + doubleMantissaBits + 31) / 32; /*  we may be able to shrink by a word */
         if (n > BIGNUM_NORMAL_SIZE_UINT32) goto atod_fail;
         one_shiftLeft(scl, bex);
         if ((m - n + 1) > BIGNUM_QUOTIENT_SIZE_UINT32) goto atod_fail;
@@ -462,43 +470,43 @@ double atod_guts (uint64_t u64mant, int dpoint)
         if (quornd(quo, num, scl, m, n))
         {
             QUODBG(fprintf(stderr, "+ quornd returned error\n"));
-            return 0.0/0.0; // NaN for bad input or software error
+            return 0.0/0.0; /*  NaN for bad input or software error */
         }
         QUODBG(print_bigint("num", num, m));
         QUODBG(print_bigint("scl", scl, n));
         QUODBG(print_bigint("quo", quo, m - n + 1));
-        return scalbn(doubleValue(quo), bex + dpoint);
+        return c89scalbn(doubleValue(quo), bex + dpoint);
     }
     else
     {
-        int bma = 64 - nlz64(u64mant); // bits in mantissa
+        int bma = 64 - nlz64(u64mant); /*  bits in mantissa */
         int r = get_pow5(-dpoint, &pow5p, &z);
-        if (r) return 0.0/0.0; // NaN for bad input -- TODO: use 0.0 for excessive -exponents?
+        if (r) return 0.0/0.0; /*  NaN for bad input -- TODO: use 0.0 for excessive -exponents? */
         bex = bma - bitLength(pow5p, z) - doubleMantissaBits;
         if (bex > 0)
         {
-            // to avoid losing significant bits, which could occur in the u64_shiftLeft below
-            // instead of shifting num right, let's shift pow5 left
-            // DANGER Will Robinson! We are aliasing pow5p and scl -- this is OK since 
-            // the only place below they are both used in the same statement or call is 
-            // scl_shift_left_by(), which is designed to handle aliased pointers
-            // and which doesn't happen at all if OPTIMIZE_FOR_ATOD is defined
-            //
+            /*  to avoid losing significant bits, which could occur in the u64_shiftLeft below */
+            /*  instead of shifting num right, let's shift pow5 left */
+            /*  DANGER Will Robinson! We are aliasing pow5p and scl -- this is OK since  */
+            /*  the only place below they are both used in the same statement or call is  */
+            /*  scl_shift_left_by(), which is designed to handle aliased pointers */
+            /*  and which doesn't happen at all if OPTIMIZE_FOR_ATOD is defined */
+            /*  */
             m = 2;
             if (m > BIGNUM_JUMBO_SIZE_UINT32) { n = 0; goto atod_fail; }
             num[0] = u64mant & UINT32_MAX;
             num[1] = u64mant >> 32;
-            // use z+1 because scl_shift_left_by my shift by as many as 10 bits (64 - 1 - 53)
+            /*  use z+1 because scl_shift_left_by my shift by as many as 10 bits (64 - 1 - 53) */
             if ((z + 1) > BIGNUM_NORMAL_SIZE_UINT32) { n = 0; goto atod_fail; }
             scl_shift_left_by(scl, pow5p, z + 1, bex);
             QUODBG(print_bigint("scl", scl, z + 1));
             n = (bitLength(scl, z + 1) + 31) / 32;
-            pow5p = scl; // DANGER Will Robinson! -- see above
+            pow5p = scl; /*  DANGER Will Robinson! -- see above */
             QUODBG(fprintf(stderr, "- bma %d bex: %d z: %d m: %d n: %d\n", bma, bex, z, m, n));
         }
         else
         {
-            m = (((bma - bex) + 31) / 32); // u64mant << -bex 
+            m = (((bma - bex) + 31) / 32); /*  u64mant << -bex  */
             if (m > BIGNUM_JUMBO_SIZE_UINT32) { n = 0; goto atod_fail; }
             QUODBG(fprintf(stderr, "- bma %d bex: %d z: %d m: %d\n", bma, bex, z, m));
             u64_shiftLeft(num, u64mant, m, -bex);
@@ -510,7 +518,7 @@ double atod_guts (uint64_t u64mant, int dpoint)
         if (r > 0)
         {
             QUODBG(fprintf(stderr, "- quornd returned error\n"));
-            return 0.0/0.0; // NaN for bad input
+            return 0.0/0.0; /*  NaN for bad input */
         }
         QUODBG(print_bigint("num", num, m));
         QUODBG(print_bigint("pow5p", pow5p, n));
@@ -527,25 +535,25 @@ double atod_guts (uint64_t u64mant, int dpoint)
         {
             bex++;
             n = (pow5p[z-1] > (UINT32_MAX / 2u)) ? z + 1 : z;
-            // use z+2 because mulbyu64 will set those words even though they may be zero
+            /*  use z+2 because mulbyu64 will set those words even though they may be zero */
             if ((z + 2) > BIGNUM_NORMAL_SIZE_UINT32) goto atod_fail;
             QUODBG(fprintf(stderr, "- n: %d m: %d q: %d bma: %d\n", n, m, m - n + 1, bma));
             scl_shift_left_by(scl, pow5p, z + 1, 1);
             if (quornd(quo, num, scl, m, n))
             {
                 QUODBG(fprintf(stderr, "- quornd returned error; v[n-1]: %u\n", scl[n-1]));
-                return 0.0/0.0; // NaN for bad input
+                return 0.0/0.0; /*  NaN for bad input */
             }
             QUODBG(print_bigint("num", num, m));
             QUODBG(print_bigint("scl", scl, n));
             QUODBG(print_bigint("quo", quo, m - n + 1));
         }
 #endif
-        return scalbn(doubleValue(quo), bex + dpoint);
+        return c89scalbn(doubleValue(quo), bex + dpoint);
    }
 atod_fail:
     QUODBG(fprintf(stderr, "atod_guts undersized bignum n: %d m: %d\n", n, m));
-    return 0.0/0.0; // NaN for bad input
+    return 0.0/0.0; /*  NaN for bad input */
 }
 
 /*
@@ -596,11 +604,11 @@ double emyg_strtod(const char *nptr, char **endptr)
 {
     const char *cp = nptr;
     double res;
-    uint64_t mant;  // mantissa
-    int minus = 0;  // mantissa minus
-    int dadp = 0;   // digits after decimal point
-    int expt = 0;   // explicit exponent
-    int expm = 0;   // exponent minus
+    uint64_t mant;  /*  mantissa */
+    int minus = 0;  /*  mantissa minus */
+    int dadp = 0;   /*  digits after decimal point */
+    int expt = 0;   /*  explicit exponent */
+    int expm = 0;   /*  exponent minus */
     char c;
 
     while (isspace(c = *cp++)) /*skip*/;
@@ -613,7 +621,7 @@ double emyg_strtod(const char *nptr, char **endptr)
      && ('a' == cp[0] || 'A' == cp[0])
      && ('n' == cp[1] || 'N' == cp[1]))
     {
-        // for Scheme allow (require?) ".0"
+        /*  for Scheme allow (require?) ".0" */
         if ('.' == cp[2] && '0' == cp[3]) cp = &cp[4];
         else cp = &cp[2];
         res = 0.0/0.0;
@@ -623,11 +631,11 @@ double emyg_strtod(const char *nptr, char **endptr)
      && ('n' == cp[0] || 'N' == cp[0])
      && ('f' == cp[1] || 'F' == cp[1]))
     {
-        // for Scheme allow (require?) ".0"
+        /*  for Scheme allow (require?) ".0" */
         if ('.' == cp[2] && '0' == cp[3]) cp = &cp[4];
         else cp = &cp[2];
         res = 1.0/0.0;
-        // TODO: allow "INITY"
+        /*  TODO: allow "INITY" */
     }
     else if ('.' == c)
     {
@@ -636,7 +644,7 @@ double emyg_strtod(const char *nptr, char **endptr)
     }
     else if (isdigit(c))
     {
-        mant = c - '0'; // mantissa
+        mant = c - '0'; /*  mantissa */
         while (isdigit(c = *cp++))
         {
             uint8_t d = c - '0';
@@ -674,16 +682,16 @@ double emyg_strtod(const char *nptr, char **endptr)
                     else
                     {
                         QUODBG(fprintf(stderr, "- overlow in emyg_strtod 3\n"));
-                        //goto no_conv;
-                        continue; // ignore extra digits
+                        /* goto no_conv; */
+                        continue; /*  ignore extra digits */
                     }
                 }
                 if (mant <= (UINT64_MAX - d)) mant += d;
                 else
                 {
                     QUODBG(fprintf(stderr, "- overlow in emyg_strtod 4\n"));
-                    //goto no_conv;
-                    continue; // ignore extra digits
+                    /* goto no_conv; */
+                    continue; /*  ignore extra digits */
                 }
                 dadp++;
             }   
@@ -717,7 +725,7 @@ double emyg_strtod(const char *nptr, char **endptr)
             }
             else
             {
-                // oops, not an exp at all
+                /*  oops, not an exp at all */
                 c = *--cp;
                 if (('-' == c) || ('+' == c)) --cp;
                 res = 0.0;
@@ -726,7 +734,7 @@ double emyg_strtod(const char *nptr, char **endptr)
         if (expm) expt = -expt;
         res = atod_guts(mant, expt - dadp);
     }
-    else // no conversion
+    else /*  no conversion */
     {
 no_conv:
         cp = nptr + 1;

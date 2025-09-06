@@ -2,4 +2,4 @@
         (scheme file))
 
 (with-output-to-file "test.txt"
-    (write "TEST"))
+    (lambda () (write "TEST")))

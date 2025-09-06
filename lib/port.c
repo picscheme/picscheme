@@ -712,8 +712,10 @@ pic_port_read_bytevector_ip(pic_state *pic)
   switch (n) {
   case 1:
     port = pic_stdin(pic);
+    /* fall through */
   case 2:
     start = 0;
+    /* fall through */
   case 3:
     end = len;
   }
@@ -754,8 +756,10 @@ pic_port_write_bytevector(pic_state *pic)
   switch (n) {
   case 1:
     port = pic_stdout(pic);
+    /* fall through */
   case 2:
     start = 0;
+    /* fall through */
   case 3:
     end = len;
   }
