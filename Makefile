@@ -76,6 +76,7 @@ c89: CFLAGS += -std=c89 -Dinline=
 c89: picrin
 
 m32: CFLAGS += -m32
+m32: LDFLAGS += -ledit -lncurses
 m32: picrin
 
 tiny-picrin: CFLAGS += -O0 -g -DPIC_USE_LIBRARY=0

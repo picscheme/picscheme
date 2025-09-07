@@ -4,17 +4,8 @@
 #include <math.h>
 
 #ifndef __STDC_VERSION__
-static double c89trunc(double x) {
-  return (double)((int)x);
-}
-
-static double c89round(double x) {
-  if (x >= 0.0) {
-      return (double)(((x - (int)x) < 0.5) ? (int)x : (int)x + 1);
-  } else {
-      return (double)(((x - (int)x) > -0.5) ? (int)x : (int)x - 1);
-  }
-}
+extern double trunc(double x);
+extern double round(double x);
 
 static int c89isinf(double x) {
   if (x == HUGE_VAL) return 1;
@@ -24,8 +15,6 @@ static int c89isinf(double x) {
 
 #define c89isnan(x) ((x) != (x))
 #else
-#define c89trunc(x) trunc(x)
-#define c89round(x) round(x)
 #define c89isinf(x) isinf(x)
 #define c89isnan(x) isnan(x)
 #endif /* __STDC_VERSION__ */
@@ -68,7 +57,7 @@ pic_number_trunc2(pic_state *pic)
   } else {
     double q, r;
 
-    q = c89trunc((double)i/j);
+    q = trunc((double)i/j);
     r = i - j * q;
 
     return pic_values(pic, 2, pic_float_value(pic, q), pic_float_value(pic, r));
@@ -116,7 +105,7 @@ pic_number_trunc(pic_state *pic)
   if (e) {
     return pic_int_value(pic, (int)f);
   } else {
-    return pic_float_value(pic, c89trunc(f));
+    return pic_float_value(pic, trunc(f));
   }
 }
 
@@ -131,7 +120,7 @@ pic_number_round(pic_state *pic)
   if (e) {
     return pic_int_value(pic, (int)f);
   } else {
-    return pic_float_value(pic, c89round(f));
+    return pic_float_value(pic, round(f));
   }
 }
 

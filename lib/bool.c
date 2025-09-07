@@ -47,7 +47,7 @@ pic_eqv_p(pic_state *PIC_UNUSED(pic), pic_value x, pic_value y)
     x_v = pic_float(pic, x);
     y_v = pic_float(pic, y);
     if (c89isnan(x_v) && c89isnan(y_v))
-      return 1;
+      return true;
     return x_v == y_v;
   case PIC_TYPE_INT:
     return pic_int(pic, x) == pic_int(pic, y);

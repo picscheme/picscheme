@@ -100,17 +100,8 @@ void abort(void);
 # define offsetof(s,m) ((size_t)(&(((s *)0)->m) - 0))
 #endif
 
-#if __STDC_VERSION__ >= 199901L
-# include <stdint.h>
-#else
-# if INT_MAX > 2147483640L      /* imported from luaconf.h */
-typedef int int32_t;
-typedef unsigned int uint32_t;
-# else
-typedef long int32_t;
-typedef unsigned long uint32_t;
-# endif
-#endif
+/* int32_t and uint32_t */
+#include <stdint.h>
 
 #if __STDC_VERSION__ >= 201112L
 # include <stdnoreturn.h>
@@ -250,6 +241,8 @@ PIC_STATIC_INLINE long
 strtol(const char *nptr, char **endptr, int base)
 {
   long l = 0;
+  long max_div_base = LONG_MAX / base;
+  int max_mod_base = (int)(LONG_MAX % base);
   char c;
   int n;
 
@@ -266,10 +259,56 @@ strtol(const char *nptr, char **endptr, int base)
 
     if (base <= n)
       goto exit;
+    if (l > max_div_base)
+      goto range;
+    if (l == max_div_base && n > max_mod_base)
+      goto range;
 
     l = l * base + n;
     nptr++;
   }
+ range:
+  l = LONG_MAX;
+  errno = ERANGE;
+ exit:
+  if (endptr)
+    *endptr = (char *)nptr;
+  return l;
+}
+
+PIC_STATIC_INLINE long long
+strtoll(const char *nptr, char **endptr, int base)
+{
+  long long l = 0;
+  long long max_div_base = LLONG_MAX / base;
+  int max_mod_base = (int)(LLONG_MAX % base);
+  char c;
+  int n;
+
+  while (1) {
+    c = *nptr;
+    if ('0' <= c && c <= '9')
+      n = c - '0';
+    else if ('a' <= c && c <= 'z')
+      n = c - 'a' + 10;
+    else if ('A' <= c && c <= 'Z')
+      n = c - 'A' + 10;
+    else
+      goto exit;
+
+    if (base <= n)
+      goto exit;
+    if (l > max_div_base)
+      goto range;
+    if (l == max_div_base && n > max_mod_base)
+      goto range;
+
+    l = l * base + n;
+    nptr++;
+  }
+ range:
+  l = LLONG_MAX;
+  errno = ERANGE;
  exit:
   if (endptr)
     *endptr = (char *)nptr;
