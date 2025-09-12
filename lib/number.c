@@ -310,7 +310,7 @@ pic_number_string_to_number(pic_state *pic)
 {
   const char *str;
   int radix = 10;
-  int64_t num;
+  long num;
   char *eptr;
 
   pic_get_args(pic, "z|i", &str, &radix);
@@ -325,16 +325,12 @@ pic_number_string_to_number(pic_state *pic)
     return pic_float_value(pic, -0.0 / 0.0);
 
   errno = 0;
-  num = strtoll(str, &eptr, radix);
-  if (errno != 0) {
+  num = strtol(str, &eptr, radix);
+  if (errno != 0 || *eptr != '\0') {
     errno = 0;
-    return pic_float_value(pic, num);
+    return string_to_number(pic, str);
   }
-  if (*eptr == '\0') {
-    return INT_MIN <= num && num <= INT_MAX ? pic_int_value(pic, num) : pic_float_value(pic, num);
-  }
-
-  return string_to_number(pic, str);
+  return INT_MIN <= num && num <= INT_MAX ? pic_int_value(pic, num) : pic_float_value(pic, num);
 }
 
 void
