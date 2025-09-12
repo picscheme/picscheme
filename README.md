@@ -85,6 +85,27 @@ configure the names
 
 See `AUTHORS`
 
+## Limitations
+* call/cc's do not support long lived continuations which last outside of the (call/cc ...) expression,
+  either via storing or returning a continuation.  Continuations created this way will fail
+  when executed.  This impacts monad definitions such as 'for'
+
+## Known issues
+
+### General
+* Some of the shortuts such as quasiquote (`) and unquote (,) are converted to
+  the procedure calls and display as such. This causes some tests to fail
+* In a few cases floating point values are out in the last bit causing test failures
+
+# libedit
+The upstream libedit library (confirmed on netbsd) has a number of issues
+* current_history() does not always return a valid value
+* history_truncate_file() removes the history magic cookie at the top, causing read_history() to fail
+* search functions do not update the internal variables preventing access to the found entry
+
+All but the history_truncate_file have workarounds, implemented in the readline.c contributed code.
+However, the readline() and add_history() functions do work so most use cases will be fine.
+
 # Additonal Notes
 ## C89 mode
 The project is written in c89 c and compiles cleanly with gcc -std=c89.

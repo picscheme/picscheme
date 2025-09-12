@@ -186,7 +186,10 @@ void abort(void);
 
 #else
 
+extern int *__errno_location (void);
+# define errno (*__errno_location ())
 # define assert(v) (void)0
+# define ERANGE 34
 
 PIC_STATIC_INLINE int
 isspace(int c)
@@ -269,45 +272,6 @@ strtol(const char *nptr, char **endptr, int base)
   }
  range:
   l = LONG_MAX;
-  errno = ERANGE;
- exit:
-  if (endptr)
-    *endptr = (char *)nptr;
-  return l;
-}
-
-PIC_STATIC_INLINE long long
-strtoll(const char *nptr, char **endptr, int base)
-{
-  long long l = 0;
-  long long max_div_base = LLONG_MAX / base;
-  int max_mod_base = (int)(LLONG_MAX % base);
-  char c;
-  int n;
-
-  while (1) {
-    c = *nptr;
-    if ('0' <= c && c <= '9')
-      n = c - '0';
-    else if ('a' <= c && c <= 'z')
-      n = c - 'a' + 10;
-    else if ('A' <= c && c <= 'Z')
-      n = c - 'A' + 10;
-    else
-      goto exit;
-
-    if (base <= n)
-      goto exit;
-    if (l > max_div_base)
-      goto range;
-    if (l == max_div_base && n > max_mod_base)
-      goto range;
-
-    l = l * base + n;
-    nptr++;
-  }
- range:
-  l = LLONG_MAX;
   errno = ERANGE;
  exit:
   if (endptr)
@@ -422,8 +386,10 @@ atof(const char *nptr)
     switch ((c = *nptr++)) {
     case '-':
       s = 1;
+      /* fall through */
     case '+':
       c = *nptr++;
+      /* fall through */
     default:
       exp = c - '0';
       while (isdigit(c = *nptr)) {

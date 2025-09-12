@@ -499,7 +499,7 @@ write_core(pic_state *pic, pic_value obj, pic_value port, struct writer_control 
     pic_fprintf(pic, port, "#f");
     break;
   case PIC_TYPE_ID:
-    pic_fprintf(pic, port, "#<identifier %s>", pic_str(pic, pic_id_name(pic, obj), NULL));
+    pic_fprintf(pic, port, "%s", pic_str(pic, pic_id_name(pic, obj), NULL));
     break;
   case PIC_TYPE_EOF:
     pic_fprintf(pic, port, "#.(eof-object)");
