@@ -922,6 +922,7 @@
           read-bytevector!
 
           write
+          display
           newline
           write-char
           write-string

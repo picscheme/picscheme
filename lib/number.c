@@ -2,6 +2,7 @@
  * See Copyright Notice in picrin.h
  */
 
+#include <errno.h>
 #include "picrin.h"
 #include "object.h"
 
@@ -172,7 +173,7 @@ DEFINE_AOP(div, pic_div(pic, pic_int_value(pic, 1), argv[0]), do {
 static int
 number_string_length(int val, int radix)
 {
-  unsigned long v = val; /* in case val == INT_MIN */
+  uint64_t v = val; /* in case val == INT_MIN */
   int count = 0;
   if (val == 0) {
     return 1;
@@ -191,7 +192,7 @@ number_string_length(int val, int radix)
 static void
 number_string(int val, int radix, int length, char *buffer) {
   const char digits[37] = "0123456789abcdefghijklmnopqrstuvwxyz";
-  unsigned long v = val;
+  uint64_t v = val; /* in case val == INT_MIN */
   int i;
   if (val == 0) {
     buffer[0] = '0';
@@ -309,7 +310,7 @@ pic_number_string_to_number(pic_state *pic)
 {
   const char *str;
   int radix = 10;
-  long num;
+  int64_t num;
   char *eptr;
 
   pic_get_args(pic, "z|i", &str, &radix);
@@ -323,7 +324,12 @@ pic_number_string_to_number(pic_state *pic)
   if (strcaseeq(str, "-nan.0"))
     return pic_float_value(pic, -0.0 / 0.0);
 
-  num = strtol(str, &eptr, radix);
+  errno = 0;
+  num = strtoll(str, &eptr, radix);
+  if (errno != 0) {
+    errno = 0;
+    return pic_float_value(pic, num);
+  }
   if (*eptr == '\0') {
     return INT_MIN <= num && num <= INT_MAX ? pic_int_value(pic, num) : pic_float_value(pic, num);
   }
